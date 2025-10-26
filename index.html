@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <title>Carrinho de Lanche do Nego — MVP</title>
+  <meta name="description" content="MVP estilo iFood para o Carrinho de Lanche do Nego. SPA com Tailwind + JS.">
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23ef4444'/><text x='50' y='60' font-family='Verdana' font-size='60' text-anchor='middle' fill='white'>🍔</text></svg>">
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Pequeno ajuste para esconder a barra de rolagem horizontal da categoria em iOS */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    html { scroll-behavior: smooth; }
+    /* Transições suaves para modais e banner */
+    .fade-enter { opacity: 0; transform: scale(0.98); }
+    .fade-enter-active { opacity: 1; transform: scale(1); transition: opacity .15s ease, transform .15s ease; }
+    .fade-exit { opacity: 1; transform: scale(1); }
+    .fade-exit-active { opacity: 0; transform: scale(0.98); transition: opacity .12s ease, transform .12s ease; }
+  </style>
+</head>
+<body class="bg-neutral-50 text-neutral-900 selection:bg-red-100 selection:text-red-700">
+  <!-- Header -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur shadow-sm">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div class="h-12 w-12 rounded-2xl bg-red-500 grid place-items-center text-2xl">🍔</div>
+      <div class="flex-1">
+        <h1 class="text-lg font-semibold leading-tight">Carrinho de Lanche do Nego</h1>
+        <div class="text-xs text-neutral-600 flex items-center gap-3">
+          <span>⭐ 4,8</span>
+          <span>•</span>
+          <span>Entrega 25–45 min</span>
+          <span>•</span>
+          <span>R$ 5,99</span>
+        </div>
+      </div>
+      <button id="btnInfo" class="text-xs px-3 py-1.5 rounded-full border border-neutral-200 hover:bg-neutral-50">Infos</button>
+    </div>
+    <!-- Category Bar -->
+    <nav id="category-bar-container" class="border-t border-neutral-100 bg-white">
+      <div id="category-bar" class="max-w-4xl mx-auto px-2 py-2 flex gap-2 overflow-x-auto no-scrollbar"></div>
+    </nav>
+  </header>
+
+  <!-- Main Menu -->
+  <main id="menu-container" class="max-w-4xl mx-auto px-4 pt-4 pb-28">
+    <!-- Conteúdo renderizado via JS -->
+  </main>
+
+  <!-- View Cart Banner -->
+  <div id="view-cart-banner" class="fixed inset-x-0 bottom-0 z-50 translate-y-full">
+    <div class="max-w-4xl mx-auto px-4 pb-safe">
+      <button id="open-cart-btn" class="w-full my-3 px-4 py-3 rounded-xl bg-red-500 text-white font-semibold shadow-lg shadow-red-500/30 flex items-center justify-between">
+        <span id="cart-banner-items">0 item</span>
+        <span class="text-white/80">•</span>
+        <span id="cart-banner-total">R$ 0,00</span>
+        <span class="ml-2 text-sm bg-white/20 rounded-md px-2 py-0.5">Ver sacola</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Cart Modal -->
+  <div id="cart-modal" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+    <div class="relative max-w-2xl mx-auto bg-white h-[92vh] mt-4 rounded-2xl shadow-xl flex flex-col">
+      <div class="px-4 py-3 border-b flex items-center justify-between">
+        <h3 class="text-lg font-semibold">Sua sacola</h3>
+        <button id="close-cart" class="text-sm px-3 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200">Fechar</button>
+      </div>
+      <div id="cart-items" class="flex-1 overflow-y-auto divide-y"></div>
+      <div class="p-4 border-t space-y-2">
+        <div class="flex items-center justify-between text-sm text-neutral-700">
+          <span>Subtotal</span><span id="cart-subtotal">R$ 0,00</span>
+        </div>
+        <div class="flex items-center justify-between text-sm text-neutral-700">
+          <span>Taxa de entrega</span><span id="cart-delivery">R$ 5,99</span>
+        </div>
+        <div class="flex items-center justify-between text-base font-semibold">
+          <span>Total</span><span id="cart-total">R$ 0,00</span>
+        </div>
+        <button id="checkout-btn" class="w-full mt-2 px-4 py-3 rounded-xl bg-red-500 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed">Finalizar pedido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmation-modal" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+    <div class="relative max-w-2xl mx-auto bg-white h-[90vh] mt-6 rounded-2xl shadow-xl flex flex-col">
+      <div class="px-4 py-3 border-b flex items-center justify-between">
+        <h3 class="text-lg font-semibold">Pedido pronto pra enviar</h3>
+        <button id="close-confirmation" class="text-sm px-3 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200">Fechar</button>
+      </div>
+      <div class="p-4 flex-1 overflow-y-auto">
+        <pre id="order-summary" class="text-sm whitespace-pre-wrap leading-relaxed"></pre>
+      </div>
+      <div class="p-4 border-t flex gap-2">
+        <button id="copy-order-btn" class="flex-1 px-4 py-3 rounded-xl bg-neutral-900 text-white font-semibold">Copiar pedido</button>
+        <a id="whatsapp-link" target="_blank" rel="noopener" class="flex-1 px-4 py-3 rounded-xl bg-green-600 text-white font-semibold grid place-items-center">Abrir no WhatsApp</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden textarea fallback -->
+  <textarea id="copy-temp" class="sr-only"></textarea>
+
+  <footer class="py-10 text-center text-xs text-neutral-500">
+    <p>MVP do <strong>Carrinho de Lanche do Nego</strong>. Feito com Tailwind + JavaScript. <span class="hidden md:inline">Single-file, pronto pra deploy no GitHub Pages/Netlify/Vercel.</span></p>
+  </footer>
+
+  <script>
+    // ============================
+    // Estado da Aplicação
+    // ============================
+
+    const categories = [
+      { id: 'destaques', name: 'Destaques', emoji: '🔥' },
+      { id: 'lanches', name: 'Lanches', emoji: '🍔' },
+      { id: 'dogs', name: 'Cachorros-Quentes', emoji: '🌭' },
+      { id: 'porcoes', name: 'Porções', emoji: '🍟' },
+      { id: 'combos', name: 'Combos', emoji: '🥤🍔' },
+      { id: 'bebidas', name: 'Bebidas', emoji: '🥤' },
+      { id: 'sobremesas', name: 'Sobremesas', emoji: '🍰' },
+      { id: 'adicionais', name: 'Adicionais', emoji: '➕' },
+    ];
+
+    const menuItems = [
+      // Destaques
+      { id: 1,  name: 'X-Bacon Supremo', description: 'Pão brioche, 160g de carne, bacon crocante, queijo prato, maionese da casa.', price: 24.90, image: '', category: 'destaques' },
+      { id: 2,  name: 'Combo Clássico', description: 'X-Salada + Batata P + Refri 350ml.', price: 32.90, image: '', category: 'destaques' },
+
+      // Lanches
+      { id: 10, name: 'X-Salada', description: 'Pão, carne, queijo, alface, tomate, maionese.', price: 19.90, image: '', category: 'lanches' },
+      { id: 11, name: 'X-Burger', description: 'Pão, carne, queijo e maionese da casa.', price: 17.00, image: '', category: 'lanches' },
+      { id: 12, name: 'X-Egg Bacon', description: 'Pão brioche, carne 160g, ovo, bacon, queijo.', price: 25.90, image: '', category: 'lanches' },
+      { id: 13, name: 'X-Calabresa', description: 'Carne 160g, calabresa acebolada, queijo, maionese.', price: 23.00, image: '', category: 'lanches' },
+
+      // Dogs
+      { id: 20, name: 'Dog Tradicional', description: 'Pão, salsicha, purê, batata palha, milho, ketchup/mostarda.', price: 14.90, image: '', category: 'dogs' },
+      { id: 21, name: 'Dog Nego', description: 'Duplo de salsicha, queijo derretido e molho especial.', price: 18.90, image: '', category: 'dogs' },
+
+      // Porções
+      { id: 30, name: 'Batata Frita P', description: 'Porção pequena para acompanhar.', price: 12.00, image: '', category: 'porcoes' },
+      { id: 31, name: 'Batata Frita G', description: 'Porção generosa, crocante por fora, macia por dentro.', price: 22.00, image: '', category: 'porcoes' },
+      { id: 32, name: 'Calabresa Acebolada', description: 'Calabresa fatiada salteada com cebola.', price: 28.00, image: '', category: 'porcoes' },
+
+      // Combos
+      { id: 40, name: 'Combo Nego', description: 'X-Bacon + Batata P + Refri lata.', price: 36.90, image: '', category: 'combos' },
+      { id: 41, name: 'Combo Família', description: '2 lanches à escolha + Batata G + 2 refri lata.', price: 72.00, image: '', category: 'combos' },
+
+      // Bebidas
+      { id: 50, name: 'Refrigerante Lata 350ml', description: 'Coca, Guaraná, Fanta...', price: 7.00, image: '', category: 'bebidas' },
+      { id: 51, name: 'Água Mineral', description: 'Sem gás 500ml.', price: 4.50, image: '', category: 'bebidas' },
+      { id: 52, name: 'Suco 300ml', description: 'Sabores do dia.', price: 8.50, image: '', category: 'bebidas' },
+
+      // Sobremesas
+      { id: 60, name: 'Brigadeiro (unid.)', description: 'Clássico, cremoso, coberto com granulado.', price: 3.50, image: '', category: 'sobremesas' },
+      { id: 61, name: 'Pudim (fatia)', description: 'Tradicional, calda de caramelo.', price: 9.90, image: '', category: 'sobremesas' },
+
+      // Adicionais
+      { id: 70, name: '+ Queijo', description: 'Fatia extra.', price: 3.00, image: '', category: 'adicionais' },
+      { id: 71, name: '+ Bacon', description: 'Porção extra.', price: 4.50, image: '', category: 'adicionais' },
+      { id: 72, name: 'Molho da Casa', description: 'Cremoso, levemente picante.', price: 2.50, image: '', category: 'adicionais' },
+    ];
+
+    let cart = [];
+
+    // ============================
+    // Utils
+    // ============================
+
+    const BRL = (n) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n ?? 0);
+
+    function groupBy(arr, key) {
+      return arr.reduce((acc, item) => {
+        (acc[item[key]] ||= []).push(item);
+        return acc;
+      }, {});
+    }
+
+    // Placeholder de imagem: SVG inline para evitar CORS e manter leve
+    function placeholderSVG(title = 'Nego') {
+      const encoded = encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 240'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='%23fecaca'/><stop offset='100%' stop-color='%23ef4444'/></linearGradient></defs><rect width='400' height='240' rx='24' fill='url(%23g)'/><text x='200' y='128' font-family='Verdana' font-size='46' text-anchor='middle' fill='white' opacity='0.9'>${title}</text></svg>`);
+      return `url('data:image/svg+xml,${encoded}')`;
+    }
+
+    // ============================
+    // Renderização
+    // ============================
+
+    function renderCategories() {
+      const bar = document.getElementById('category-bar');
+      bar.innerHTML = '';
+      categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'category-button shrink-0 px-3 py-2 rounded-full border text-sm border-neutral-200 hover:bg-neutral-50 active:bg-neutral-100';
+        btn.textContent = `${cat.emoji} ${cat.name}`;
+        btn.addEventListener('click', () => scrollToCategory(cat.id));
+        bar.appendChild(btn);
+      });
+    }
+
+    function renderMenu() {
+      const container = document.getElementById('menu-container');
+      container.innerHTML = '';
+
+      const byCat = groupBy(menuItems, 'category');
+
+      categories.forEach(cat => {
+        const items = byCat[cat.id] || [];
+        // Título da categoria
+        const h2 = document.createElement('h2');
+        h2.id = `categoria-${cat.id}`;
+        h2.className = 'scroll-mt-24 text-xl font-bold mt-6 mb-2 flex items-center gap-2';
+        h2.innerHTML = `<span class="text-lg">${cat.emoji}</span> ${cat.name}`;
+        container.appendChild(h2);
+
+        // Lista de itens
+        items.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'flex items-stretch gap-3 py-3 border-b';
+          const info = document.createElement('div');
+          info.className = 'flex-1';
+          const title = document.createElement('h3');
+          title.className = 'font-semibold';
+          title.textContent = item.name;
+          const desc = document.createElement('p');
+          desc.className = 'text-sm text-neutral-600 line-clamp-2';
+          desc.textContent = item.description || '';
+          const price = document.createElement('div');
+          price.className = 'mt-1 font-semibold';
+          price.textContent = BRL(item.price);
+
+          const btn = document.createElement('button');
+          btn.className = 'mt-3 px-3 py-2 text-sm rounded-lg bg-red-500 text-white font-semibold hover:brightness-95 active:brightness-90';
+          btn.textContent = 'Adicionar';
+          btn.addEventListener('click', () => addToCart(item.id, btn));
+
+          info.appendChild(title);
+          info.appendChild(desc);
+          info.appendChild(price);
+          info.appendChild(btn);
+
+          const thumb = document.createElement('div');
+          thumb.className = 'w-28 h-24 rounded-xl bg-cover bg-center bg-no-repeat';
+          thumb.style.backgroundImage = placeholderSVG('Nego');
+
+          row.appendChild(info);
+          row.appendChild(thumb);
+          container.appendChild(row);
+        });
+      });
+    }
+
+    // ============================
+    // Interações
+    // ============================
+
+    function scrollToCategory(categoryId) {
+      const el = document.getElementById(`categoria-${categoryId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function addToCart(itemId, btnEl) {
+      const item = menuItems.find(m => m.id === itemId);
+      if (!item) return;
+      const existing = cart.find(c => c.id === itemId);
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        cart.push({ ...item, quantity: 1 });
+      }
+      // Feedback visual do botão
+      const original = btnEl.textContent;
+      btnEl.textContent = '✓ Adicionado!';
+      btnEl.classList.add('bg-emerald-600');
+      setTimeout(() => {
+        btnEl.textContent = original;
+        btnEl.classList.remove('bg-emerald-600');
+      }, 900);
+      updateCart();
+    }
+
+    function changeQuantity(itemId, amount) {
+      const idx = cart.findIndex(c => c.id === itemId);
+      if (idx === -1) return;
+      cart[idx].quantity += amount;
+      if (cart[idx].quantity <= 0) cart.splice(idx, 1);
+      updateCart();
+    }
+
+    function removeFromCart(itemId) {
+      cart = cart.filter(c => c.id !== itemId);
+      updateCart();
+    }
+
+    function toggleModal(modalEl, show) {
+      if (show) {
+        modalEl.classList.remove('hidden');
+        // pequena animação
+        const panel = modalEl.querySelector('.relative');
+        panel?.classList.add('fade-enter');
+        requestAnimationFrame(() => {
+          panel?.classList.add('fade-enter-active');
+          panel?.classList.remove('fade-enter');
+        });
+      } else {
+        const panel = modalEl.querySelector('.relative');
+        panel?.classList.add('fade-exit');
+        panel?.classList.remove('fade-enter-active');
+        setTimeout(() => {
+          modalEl.classList.add('hidden');
+          panel?.classList.remove('fade-exit');
+        }, 120);
+      }
+    }
+
+    function toggleCartModal(show) {
+      const modal = document.getElementById('cart-modal');
+      toggleModal(modal, show);
+    }
+
+    function updateCart() {
+      // totais
+      const totalItems = cart.reduce((s, it) => s + it.quantity, 0);
+      const subtotal = cart.reduce((s, it) => s + it.quantity * it.price, 0);
+      const delivery = cart.length ? 5.99 : 0;
+      const total = subtotal + delivery;
+
+      // banner
+      const banner = document.getElementById('view-cart-banner');
+      const bannerItems = document.getElementById('cart-banner-items');
+      const bannerTotal = document.getElementById('cart-banner-total');
+      bannerItems.textContent = `${totalItems} ${totalItems === 1 ? 'item' : 'itens'}`;
+      bannerTotal.textContent = BRL(total);
+      banner.classList.toggle('translate-y-full', cart.length === 0);
+
+      // cart modal list
+      const list = document.getElementById('cart-items');
+      list.innerHTML = '';
+      cart.forEach(it => {
+        const row = document.createElement('div');
+        row.className = 'p-3 flex items-center gap-3';
+        const info = document.createElement('div');
+        info.className = 'flex-1';
+        info.innerHTML = `<div class="font-medium">${it.name}</div><div class="text-sm text-neutral-600">${BRL(it.price)}</div>`;
+        const controls = document.createElement('div');
+        controls.className = 'flex items-center gap-2';
+
+        const minus = document.createElement('button');
+        minus.className = 'px-2 py-1 rounded bg-neutral-100 hover:bg-neutral-200';
+        minus.textContent = '−';
+        minus.addEventListener('click', () => changeQuantity(it.id, -1));
+
+        const qty = document.createElement('span');
+        qty.className = 'min-w-6 text-center';
+        qty.textContent = it.quantity;
+
+        const plus = document.createElement('button');
+        plus.className = 'px-2 py-1 rounded bg-neutral-100 hover:bg-neutral-200';
+        plus.textContent = '+';
+        plus.addEventListener('click', () => changeQuantity(it.id, +1));
+
+        const del = document.createElement('button');
+        del.className = 'px-2 py-1 rounded bg-neutral-100 hover:bg-red-100 text-red-600';
+        del.textContent = '🗑️';
+        del.addEventListener('click', () => removeFromCart(it.id));
+
+        controls.append(minus, qty, plus, del);
+        row.append(info, controls);
+        list.appendChild(row);
+      });
+
+      // totais no modal
+      document.getElementById('cart-subtotal').textContent = BRL(subtotal);
+      document.getElementById('cart-delivery').textContent = BRL(delivery);
+      document.getElementById('cart-total').textContent = BRL(total);
+
+      // habilitar checkout
+      const checkoutBtn = document.getElementById('checkout-btn');
+      checkoutBtn.disabled = cart.length === 0;
+    }
+
+    function checkout() {
+      const totalItems = cart.reduce((s, it) => s + it.quantity, 0);
+      const subtotal = cart.reduce((s, it) => s + it.quantity * it.price, 0);
+      const delivery = cart.length ? 5.99 : 0;
+      const total = subtotal + delivery;
+
+      const lines = [];
+      lines.push('🧾 *Pedido - Carrinho de Lanche do Nego*');
+      lines.push('');
+      cart.forEach(it => {
+        lines.push(`• ${it.quantity}x ${it.name} — ${BRL(it.price)} (cada)`);
+      });
+      lines.push('');
+      lines.push(`Itens: ${totalItems}`);
+      lines.push(`Subtotal: ${BRL(subtotal)}`);
+      lines.push(`Entrega: ${BRL(delivery)}`);
+      lines.push(`*Total: ${BRL(total)}*`);
+      lines.push('');
+      const when = new Date().toLocaleString('pt-BR');
+      lines.push(`Data/Hora: ${when}`);
+      lines.push('Observações: ');
+      const summary = lines.join('\n');
+
+      document.getElementById('order-summary').textContent = summary;
+
+      // Link WhatsApp (pré-preenchido)
+      const msg = encodeURIComponent(summary);
+      // Coloque aqui o número do Nego no formato 55DDXXXXXXXXX
+      const phone = ''; // ex.: '5512992000656'
+      const wa = phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
+      const waLink = document.getElementById('whatsapp-link');
+      waLink.href = wa;
+
+      // Fecha o modal da sacola e abre confirmação
+      toggleCartModal(false);
+      toggleModal(document.getElementById('confirmation-modal'), true);
+
+      // Limpa o carrinho e atualiza UI (esconde banner etc.)
+      cart = [];
+      updateCart();
+    }
+
+    async function copyOrderToClipboard() {
+      const text = document.getElementById('order-summary').textContent || '';
+      const btn = document.getElementById('copy-order-btn');
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const ta = document.getElementById('copy-temp');
+          ta.value = text;
+          ta.select();
+          document.execCommand('copy');
+        }
+        const original = btn.textContent;
+        btn.textContent = 'Copiado ✔';
+        setTimeout(() => (btn.textContent = original), 1200);
+      } catch (e) {
+        alert('Não foi possível copiar automaticamente. Selecione e copie manualmente.');
+      }
+    }
+
+    function startNewOrder() {
+      toggleModal(document.getElementById('confirmation-modal'), false);
+    }
+
+    // ============================
+    // Event Listeners
+    // ============================
+    document.getElementById('open-cart-btn').addEventListener('click', () => toggleCartModal(true));
+    document.getElementById('close-cart').addEventListener('click', () => toggleCartModal(false));
+    document.getElementById('checkout-btn').addEventListener('click', checkout);
+    document.getElementById('close-confirmation').addEventListener('click', startNewOrder);
+    document.getElementById('copy-order-btn').addEventListener('click', copyOrderToClipboard);
+    document.getElementById('btnInfo').addEventListener('click', () => {
+      alert('Este é um MVP estilo iFood. Para ativar envio direto para o WhatsApp, edite o código e preencha a variável "phone" no checkout().');
+    });
+
+    // ============================
+    // Inicialização
+    // ============================
+    renderCategories();
+    renderMenu();
+    updateCart();
+  </script>
+</body>
+</html>
