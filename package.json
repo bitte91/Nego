@@ -4,10 +4,15 @@
   "description": "Backend for Lanche do Nego",
   "main": "api/index.js",
   "scripts": {
-    "start": "node api/index.js"
+    "start": "node api/index.js",
+    "test": "jest"
   },
   "dependencies": {
-    "express": "^4.17.1",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "express": "^4.17.1"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4"
   }
 }
