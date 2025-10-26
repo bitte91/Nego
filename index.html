@@ -189,7 +189,7 @@
 
           const thumb = document.createElement('div');
           thumb.className = 'h-36 bg-cover bg-center';
-          thumb.style.backgroundImage = placeholderImage(item.name);
+          thumb.style.backgroundImage = `url('${item.image}')`;
 
           const info = document.createElement('div');
           info.className = 'p-4 flex-1 flex flex-col';
