@@ -1,0 +1,13 @@
+{
+  "name": "lanche-do-nego-backend",
+  "version": "1.0.0",
+  "description": "Backend for Lanche do Nego",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "cors": "^2.8.5"
+  }
+}
